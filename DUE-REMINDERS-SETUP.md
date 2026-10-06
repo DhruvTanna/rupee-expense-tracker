@@ -1,19 +1,21 @@
 # Overdue reimbursement email reminders
 
-The tracker supports an optional due date for each person on a shared expense. If the owner enables **Email me about overdue amounts** in Settings, the scheduled job emails a daily summary after the due date (starting the following day) while an amount remains unpaid. It stops once linked and unallocated reimbursements cover the outstanding shares. The reminder contains the person's name, expense description, due date, and pending amount; these details are sent through the configured email provider.
+The tracker has separate opt-in switches for the signed-in user's own daily digest and for emailing people who owe them. Each person can have an optional email address in **People & Dues → Edit**. Emailing those people is off by default. When enabled, each receives a daily digest containing only their own overdue shared-expense items. Reminders start the day after the due date at 9:00 AM India time and stop once recorded payments cover the share.
 
-## What is included
+Emails include person names, expense descriptions, due dates, and pending amounts. Delivery uses the configured email provider (Resend). The debtor does not need a tracker account and receives no login access.
 
-- `supabase/functions/send-due-reminders/index.ts`: scheduled Supabase Edge Function; sends a single daily digest per user, and does not expose provider credentials to the browser.
-- `supabase/due-reminders.sql`: private per-user send log table (one email per user per day).
-- `supabase/config.toml`: disables platform JWT checking for this cron-only function; the function checks its own `x-reminder-secret` header.
-- Website source: `index.html` (single-file app).
+## Included files
+
+- `supabase/functions/send-due-reminders/index.ts`: scheduled Supabase Edge Function. Sends owner and debtor emails according to their separate settings, with no provider secrets in the browser.
+- `supabase/due-reminders.sql`: private per-recipient send log table. Safe to run for a fresh setup or to upgrade the earlier owner-only log table.
+- `supabase/config.toml`: disables platform JWT checking for this cron-only function; the handler checks its own `x-reminder-secret` header.
+- Website: `index.html`.
 
 ## One-time setup still required
 
-Email delivery requires a Resend account with an approved sender address and an API key. Supabase's built-in email sender is intended for authentication emails and is not used for these reminders. Create a Resend API key and verify a sender domain/address in Resend; add the key and sender address only to Supabase Edge Function secrets. Never put either in the HTML app or GitHub.
+Email delivery requires a Resend account with an approved sender address and an API key. Create a Resend API key and verify a sender domain/address in Resend; add the key and sender address only to Supabase Edge Function secrets. Never put either in the HTML app or GitHub.
 
-### 1. Create the send log
+### 1. Create or upgrade the send log
 
 In Supabase Dashboard → SQL Editor, run the contents of `supabase/due-reminders.sql`.
 
@@ -61,11 +63,11 @@ select cron.schedule(
 );
 ```
 
-Supabase Cron can schedule HTTP calls to Edge Functions using `pg_cron` and `pg_net`, with sensitive request values stored in Vault. If you need to change a Vault value, update the existing secret rather than creating duplicate names. View `cron.job_run_details` and the Edge Function logs to check execution and delivery failures.
+Supabase Cron can schedule Edge Function calls using `pg_cron` and `pg_net`, with sensitive request values stored in Vault. View `cron.job_run_details` and the Edge Function logs to check execution and delivery failures.
 
-### 5. Turn reminders on
+### 5. Choose who receives reminders
 
-In the tracker, open **Settings → Email reminders** and enable **Email me about overdue amounts**. When adding or editing a split expense, enter a due date on each person's share. An amount without a due date is never emailed.
+In the tracker **Settings → Email reminders**, switch on **Email me about overdue amounts** for your own digest. Separately switch on **Also email people who owe me** to notify debtors. Both start off. For a debtor notice, add that person's address using **People & Dues → Edit** and enter a due date on their share in the expense form. People without a saved email or shares without a due date receive no email.
 
-If Resend or its sender domain has not been configured, the website can still record due dates, but automatic emails will not be sent. Resend may also restrict sending until your sender domain is verified.
+If Resend or its sender domain has not been configured, the app can still save preferences and due dates, but automatic emails will not be sent. Resend may restrict sending until your sender domain is verified.
 
