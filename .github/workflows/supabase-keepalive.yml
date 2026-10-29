@@ -1,0 +1,25 @@
+name: Keep Supabase active
+
+on:
+  schedule:
+    - cron: "13 0,8,16 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  activity-ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Send a data-free database activity ping
+        env:
+          SUPABASE_URL: https://bczqlmyswuucdiycodey.supabase.co
+          SUPABASE_PUBLISHABLE_KEY: sb_publishable_JiHknpi-VodjK9rE5O07Cg_YhpsPBk6
+        run: |
+          curl --fail --silent --show-error --max-time 30 \
+            --request POST "$SUPABASE_URL/rest/v1/rpc/activity_ping" \
+            --header "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            --header "Content-Type: application/json" \
+            --data '{}'
